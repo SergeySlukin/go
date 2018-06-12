@@ -1,71 +1,84 @@
-package main
-
+package main //4 //сделать проверку мапы в get_count //сделать логи с каналами и воркерами? //с помощью йоты можно сделать уровни логов
 import (
 	"net/http"
 	"html/template"
-	"fmt"
+	"log"
 	"time"
 	"math/rand"
 )
 
+
+
+var letters = []rune("qwertyuiolkjhgfdsazxcvbnmQWERTYUIOPLKJHGFDSAZXCVBNM0123456789")
+
 type User struct {
-	Auth     bool
+	Auth bool
 	Username string
 }
 
 var sessions = map[string]*User{}
 
-func main() {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		sessionID, err := r.Cookie("session_id")
+func main()  {
+	http.HandleFunc("/", indexHandler)
+	http.HandleFunc("/get_cookie", cookieHandler)
+	log.Fatal(http.ListenAndServe(":3000", nil))
+}
 
-		if err == http.ErrNoCookie {
-			tmpl, _ := template.New("auth.html").ParseFiles("auth.html")
-			tmpl.Execute(w, nil)
-			fmt.Fprint(w, err.Error(), http.StatusInternalServerError)
-			return
-		} else if err != nil {
-			PanicOnErr(err)
+func indexHandler(w http.ResponseWriter, r *http.Request)  {
+	session, err := r.Cookie("session_id")
+	if err == http.ErrNoCookie {
+		authTemplate, err := template.New("auth.html").ParseFiles("auth.html")
+		if err != nil {
+			log.Println("auth template error: ", err)
+			http.Error(w, "auth template error", http.StatusInternalServerError)
 		}
-		username, ok := sessions[sessionID.Value]
-		if ok {
-			tmpl, _ := template.New("index.html").ParseFiles("index.html")
-			tmpl.Execute(w, username)
-		} else {
-			tmpl, _ := template.New("auth.html").ParseFiles("auth.html")
-			tmpl.Execute(w, username)
+		authTemplate.Execute(w, nil)
+	} else if err != nil {
+		PanicOnError(err)
+	}
+
+	user, ok := sessions[session.Value]
+	if !ok {
+		authTemplate, err := template.New("auth.html").ParseFiles("auth.html")
+		if err != nil {
+			log.Println("auth template error: ", err)
+			http.Error(w, "auth template error", http.StatusInternalServerError)
 		}
+		authTemplate.Execute(w, nil)
+	} else {
+		indexTemplate, err := template.New("index.html").ParseFiles("index.html")
+		if err != nil {
+			log.Println("index template error: ", err)
+			http.Error(w, "index template error", http.StatusInternalServerError)
+		}
+		indexTemplate.Execute(w, user)
+	}
+}
 
-	})
-
-	http.HandleFunc("/get_cookie", func(w http.ResponseWriter, r *http.Request) {
+func cookieHandler(w http.ResponseWriter, r *http.Request)  {
+	if r.Method == http.MethodPost {
 		r.ParseForm()
-		inputLogin := r.Form["login"][0]
-		expiration := time.Now().Add(365 * 24 * time.Hour)
-		sessionID := RandStringRunes(32)
-		sessions[sessionID] = &User{
+		inputLogin := r.FormValue("login") //r.Form["login"][0]
+		expires := time.Now().Add(365 * 24 * time.Hour)
+		sessionId := RandomString(32)
+		sessions[sessionId] = &User{
 			Auth: true,
 			Username: inputLogin,
 		}
-		cookie := http.Cookie{Name: "session_id", Value: sessionID, Expires: expiration}
+		cookie := http.Cookie{Name: "session_id", Value: sessionId, Expires: expires}
 		http.SetCookie(w, &cookie)
-		http.Redirect(w, r, "/", http.StatusFound)
-	})
-	http.ListenAndServe(":3000", nil)
-}
-
-func PanicOnErr(err error)  {
-	if err != nil {
-		panic(err)
 	}
+	http.Redirect(w, r, "/", http.StatusFound)
 }
 
-var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-
-func RandStringRunes(length int) string  {
-	b := make([]rune, length)
+func RandomString(n int) string {
+	b := make([]rune, n)
 	for i := range b {
-		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+		b[i] = letters[rand.Intn(len(letters))]
 	}
 	return string(b)
+}
+
+func PanicOnError(err error)  {
+	panic(err)
 }
