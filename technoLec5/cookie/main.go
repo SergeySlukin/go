@@ -38,6 +38,7 @@ func main() {
 
 	http.HandleFunc("/get_cookie", func(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
+		log.Println(r.Form)
 		inputLogin := r.Form["login"][0]
 		expiration := time.Now().Add(365 * 24 * time.Hour)
 		cookie := http.Cookie{Name: "session_id", Value: inputLogin, Expires: expiration}
