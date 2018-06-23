@@ -1,4 +1,4 @@
-package main
+package main //4 //сделать проверку мапы в get_count //сделать логи с каналами и воркерами? //с помощью йоты можно сделать уровни логов
 import (
 	"net/http"
 	"html/template"
