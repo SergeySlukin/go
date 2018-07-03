@@ -2,6 +2,9 @@ package main
 
 import (
 	"os"
+	"io"
+	"encoding/hex"
+	"fmt"
 )
 
 type Storage struct {
@@ -26,6 +29,30 @@ func (s *Storage) Write(v interface{})  {
 	case string:
 		s.file.WriteString(x + "\n")
 	}
+}
+
+func (s *Storage) Read(t string, hashStorage *HashStorage)  {
+	switch t {
+	case "byte":
+		readBytes(s, hashStorage)
+	}
+}
+
+func readBytes(s *Storage, h *HashStorage)  {
+	data := make([]byte, 16)
+	for {
+		n, err := s.file.Read(data)
+		if err != nil {
+			if err == io.EOF {
+				break
+			}
+			panic(err)
+		}
+		if n == 16 {
+			h.hashMap[hex.EncodeToString(data)] = true
+		}
+	}
+	fmt.Println("Завершено. Прочитано ъешей: ", len(h.hashMap))
 }
 
 func (s *Storage) Close() {

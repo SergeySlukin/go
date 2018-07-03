@@ -16,6 +16,8 @@ func main() {
 	hashFileName := flag.String("hf", "has.bin", "файл ъешей")
 	quoteFileName := flag.String("qf", "quotes.txt", "файл записей")
 
+
+
 	flag.Parse()
 
 	quoteFileStorage := NewStorage(*quoteFileName)
@@ -35,15 +37,20 @@ func main() {
 	hashStorage := NewHashStorage()
 	hashStorage.SetAlgorithm("md5")
 
+	hashFileStorage.Read("byte", hashStorage)
+
 	for {
 		select {
 		case text := <-p.receive:
 			hash, ok := hashStorage.Add(text)
 			if !ok {
+
 				if dupCount++; dupCount == *dup {
+					go func() {
+						interruptChannel <- os.Interrupt
+					}()
 					fmt.Println("Достигнут предел повтоов, завершаю работу. Всего записей: ", len(hashStorage.hashMap))
 					p.Close()
-					interruptChannel <- os.Interrupt
 				}
 			} else {
 				quoteCount++
