@@ -43,25 +43,34 @@ func main() {
 
 	filename := os.Args[1:]
 
-	file, err := ioutil.ReadFile(filename[0])
-	if err != nil {
-		log.Fatal(err)
-	}
+	wg := sync.WaitGroup{}
 
-	buf := bytes.NewBuffer(file)
-	for {
-		line, err := buf.ReadString('\n')
-		if len(line) == 0 {
+	for _, v := range filename {
+		wg.Add(1)
+		go func() {
+			file, err := ioutil.ReadFile(v)
 			if err != nil {
-				if err == io.EOF {
-					break
-				}
-				break
+				log.Fatal(err)
 			}
-		}
-		filePool.fileString <- line
-	}
 
+			buf := bytes.NewBuffer(file)
+			for {
+				line, err := buf.ReadString('\n')
+				if len(line) == 0 {
+					if err != nil {
+						if err == io.EOF {
+							wg.Done()
+							break
+
+						}
+						break
+					}
+				}
+				filePool.fileString <- line
+			}
+		}()
+	}
+	wg.Wait()
 	filePool.Close()
 	filePool.Wait()
 
