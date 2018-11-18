@@ -5,9 +5,9 @@ import (
 )
 
 type Provider interface {
-	SessionInit(sid string) (session.Session, error)
-	SessionRead(sid string) (session.Session, error)
-	SessionDestroy(sid string) (session.Session, error)
+	SessionInit(sid string) (session.Session)
+	SessionRead(sid string) (session.Session)
+	SessionDestroy(sid string)
 	SessionGC(maxLifeTime uint64)
 }
 

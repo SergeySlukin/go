@@ -41,12 +41,12 @@ func (m *Manager) SessionStart(w http.ResponseWriter, r *http.Request) (session 
 	cookie, err := r.Cookie(m.cookieName)
 	if err != nil || cookie.Value == ""{
 		sid := m.sessionId()
-		session, _ = m.provides.SessionInit(sid)
+		session = m.provides.SessionInit(sid)
 		cookie := http.Cookie{Name: m.cookieName, Value: url.QueryEscape(sid), Path: "/", HttpOnly: true, MaxAge: int(m.maxLifeTime)}
 		http.SetCookie(w, &cookie)
 	} else {
 		sid, _ := url.QueryUnescape(cookie.Value)
-		session, _ = m.provides.SessionRead(sid)
+		session = m.provides.SessionRead(sid)
 	}
 	return
 }
@@ -58,7 +58,7 @@ func (m *Manager) SessionDestroy(w http.ResponseWriter, r *http.Request)  {
 	} else {
 		m.lock.Lock()
 		defer m.lock.Unlock()
-		m.provides.SessionDestroy(cookie.Value)
+		m.provides.SessionDelete(cookie.Value)
 		expiration := time.Now()
 		cookie := http.Cookie{Name: m.cookieName, Path: "/", HttpOnly: true, Expires:expiration, MaxAge: -1}
 		http.SetCookie(w, &cookie)
@@ -68,8 +68,7 @@ func (m *Manager) SessionDestroy(w http.ResponseWriter, r *http.Request)  {
 func (m *Manager) SessionGC()  {
 	m.lock.Unlock()
 	defer m.lock.Unlock()
-	m.provides.SessionGC(m.maxLifeTime)
 	time.AfterFunc(time.Duration(m.maxLifeTime), func() {
-		m.GC()
+		m.provides.SessionGC(m.maxLifeTime)
 	})
 }
